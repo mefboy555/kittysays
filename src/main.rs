@@ -10,9 +10,9 @@ use std::str::FromStr;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 mod color;
-mod mikuart;
+mod kittyart;
 use color::{Color, ColorMode, detect_color_mode, lerp_color_hsv};
-use mikuart::get_miku_art;
+use kittyart::get_kitty_art;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -20,7 +20,6 @@ pub struct Args {
     /// Text to display in the speech bubble
     pub text: Option<String>,
 
-    /// Style of the Miku art. A random one is chosen if not specified
     #[arg(short, long, value_parser = clap::value_parser!(i32).range(0..))]
     pub style: Option<i32>,
 
@@ -354,17 +353,17 @@ pub fn generate_gradient_cache(
 }
 
 fn list_all_art_styles() {
-    println!("Available Miku art styles:");
+    println!("Available kitty art styles:");
     println!("==========================");
 
     // Get all art styles to determine the count
-    let all_art = get_miku_art(None, Some(true));
+    let all_art = get_kitty_art(None, Some(true));
     let styles_count = all_art.len();
     println!("Total styles: {}", styles_count);
 
     for i in 0..styles_count {
         println!("\n--- Style {} ---", i);
-        let art = get_miku_art(Some(i as i32), Some(false));
+        let art = get_kitty_art(Some(i as i32), Some(false));
         for line in art {
             println!("{}", line);
         }
@@ -389,16 +388,16 @@ fn list_all_art_styles() {
     println!("  --gradient red:blue      Custom gradient");
 }
 
-fn draw_miku_says(
+fn draw_kitty_says(
     text: &str,
     style: i32,
     color_config: &mut ColorConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let speech_bubble_lines = get_speech_bubble_lines(text);
-    let miku_art = get_miku_art(Some(style), None);
+    let kitty_art = get_kitty_art(Some(style), None);
 
     // Distribute colors across characters that are actually colored.
-    let total_chars: usize = miku_art
+    let total_chars: usize = kitty_art
         .iter()
         .map(|line| {
             line.chars()
@@ -419,7 +418,7 @@ fn draw_miku_says(
 
     let mut all_content_lines = Vec::new();
     all_content_lines.extend(speech_bubble_lines.clone());
-    all_content_lines.extend(miku_art.iter().map(|s| s.to_string()));
+    all_content_lines.extend(kitty_art.iter().map(|s| s.to_string()));
 
     let max_content_width = all_content_lines
         .iter()
@@ -438,16 +437,16 @@ fn draw_miku_says(
         .map(|line| line.width())
         .unwrap_or(0);
 
-    let first_miku_line = miku_art.first().unwrap_or(&"");
-    let tail_pos = first_miku_line
+    let first_kitty_line = kitty_art.first().unwrap_or(&"");
+    let tail_pos = first_kitty_line
         .chars()
         .position(|c| !c.is_whitespace())
         .unwrap_or(0);
 
     let bubble_center = bubble_width / 2;
-    let miku_tail_absolute_pos = overall_left_padding + tail_pos;
+    let kitty_tail_absolute_pos = overall_left_padding + tail_pos;
 
-    let bubble_left_padding = miku_tail_absolute_pos.saturating_sub(bubble_center);
+    let bubble_left_padding = kitty_tail_absolute_pos.saturating_sub(bubble_center);
 
     let bubble_line_count = speech_bubble_lines.len();
 
@@ -484,7 +483,6 @@ fn draw_miku_says(
         } else {
             let horizontal_padding = " ".repeat(overall_left_padding);
 
-            // Apply coloring to Miku art lines
             if color_config.mode != ColorMode::NoColor && !color_config.color_cache.is_empty() {
                 // Use crossterm queueing to color characters so it's platform-agnostic
                 let mut stdout = stdout();
@@ -545,7 +543,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     });
 
-    let styles_count = get_miku_art(None, Some(true)).len();
+    let styles_count = get_kitty_art(None, Some(true)).len();
     let style = match args.style {
         Some(style) if style as usize >= styles_count => Args::command()
             .error(
@@ -580,7 +578,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    draw_miku_says(&text, style, &mut color_config)?;
+    draw_kitty_says(&text, style, &mut color_config)?;
 
     Ok(())
 }
